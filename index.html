@@ -16,6 +16,9 @@
   <!-- 전국 지역 자동완성 목록 -->
   <datalist id="koreaCityList"></datalist>
 
+  <!-- 토스트 알림 -->
+  <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
   <!-- 로그인 모달 -->
   <div id="loginModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
@@ -30,7 +33,8 @@
   </div>
 
   <!-- 메인 대시보드 -->
-  <div id="app" class="hidden max-w-5xl mx-auto p-3 sm:p-6">
+  <div id="app" class="hidden max-w-7xl mx-auto p-3 sm:p-6">
+    <!-- 상단 헤더 -->
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 mb-4">
       <div class="flex flex-wrap justify-between items-center gap-3">
         <div>
@@ -42,6 +46,9 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button onclick="downloadExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs" data-i18n="btnQuickExcel">
+            엑셀 다운로드
+          </button>
           <button onclick="toggleLang()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold">
             KO / EN
           </button>
@@ -51,42 +58,72 @@
         </div>
       </div>
 
+      <!-- 주차 선택 + 제출 현황 요약 -->
       <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3">
         <div class="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-xl flex-1 sm:flex-initial">
           <span class="text-xs font-bold text-slate-500" data-i18n="weekSelect">주차:</span>
           <select id="weekSelector" onchange="loadWeekData()" class="bg-transparent text-sm font-extrabold text-slate-900 focus:outline-none w-full"></select>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button onclick="copyFromLastWeek()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition" data-i18n="btnCopyLastWeek">
-            지난주 일정 가져오기
-          </button>
-          <button onclick="clearMyWeek()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition" data-i18n="btnClear">
-            초기화
-          </button>
-        </div>
+        <!-- 6명 제출 현황 배지 -->
+        <div class="flex items-center gap-1.5 flex-wrap" id="submissionSummaryBar"></div>
       </div>
     </header>
 
-    <div class="grid grid-cols-2 gap-2 bg-slate-200/70 p-1 rounded-xl mb-5">
-      <button id="tabInput" onclick="switchTab('input')" class="py-2.5 rounded-lg font-bold text-sm bg-white text-blue-600 shadow-sm transition" data-i18n="tabMyInput">
+    <!-- 3단 탭 네비게이션 -->
+    <div class="grid grid-cols-3 gap-1.5 bg-slate-200/70 p-1 rounded-xl mb-5">
+      <button id="tabInput" onclick="switchTab('input')" class="py-2.5 px-2 rounded-lg font-bold text-xs sm:text-sm bg-white text-blue-600 shadow-sm transition" data-i18n="tabMyInput">
         내 일정 입력
       </button>
-      <button id="tabOverview" onclick="switchTab('overview')" class="py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:text-slate-900 transition" data-i18n="tabAllView">
-        전체 취합 및 엑셀 다운로드
+      <button id="tabMatrix" onclick="switchTab('matrix')" class="py-2.5 px-2 rounded-lg font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition" data-i18n="tabTeamMatrix">
+        6명 한눈에 보기
+      </button>
+      <button id="tabOverview" onclick="switchTab('overview')" class="py-2.5 px-2 rounded-lg font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition" data-i18n="tabAllView">
+        개별 시트 및 엑셀
       </button>
     </div>
 
-    <!-- [탭 1] 요일별 카드 입력 UI -->
+    <!-- [탭 1] 내 일정 입력 -->
     <div id="viewInput" class="space-y-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5">
-        <div class="text-xs font-bold text-slate-500 mb-2" data-i18n="codeGuideTitle">Activity Code 기준표</div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 flex flex-wrap justify-between items-center gap-3">
         <div class="flex flex-wrap gap-1.5" id="topCodeGuide"></div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyFromLastWeek()" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-bold transition" data-i18n="btnCopyLastWeek">
+            지난주 불러오기
+          </button>
+          <button onclick="clearMyWeek()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition" data-i18n="btnClear">
+            전체 비우기
+          </button>
+        </div>
       </div>
+
       <div id="dayCardsContainer" class="space-y-4"></div>
     </div>
 
-    <!-- [탭 2] 전체 취합 및 엑셀 다운로드 -->
+    <!-- [탭 2] 6명 한눈에 보기 (팀 전체 매트릭스) -->
+    <div id="viewMatrix" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900" data-i18n="matrixTitle">팀 전체 주간 일정 (6명 통합)</h2>
+            <p class="text-xs text-slate-500" id="matrixPeriodSub"></p>
+          </div>
+          <!-- 코드별 필터 -->
+          <div class="flex items-center gap-1 flex-wrap" id="matrixCodeFilter"></div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="w-full border-collapse text-xs min-w-[960px]">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700" id="matrixTableHead"></tr>
+            </thead>
+            <tbody id="matrixTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- [탭 3] 개별 시트 및 엑셀 다운로드 -->
     <div id="viewOverview" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6">
       <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
         <div class="flex gap-1.5 flex-wrap" id="sheetTabs"></div>
@@ -118,9 +155,11 @@
 
   <!-- 하단 고정 저장 플로팅 바 -->
   <div id="floatingSaveBar" class="hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 p-3 z-40">
-    <div class="max-w-5xl mx-auto flex justify-between items-center gap-3">
-      <div class="text-xs text-slate-500">
-        <span id="filledCountText" class="font-bold text-blue-600">0</span> / 20 <span data-i18n="itemsFilled">항목 입력됨</span>
+    <div class="max-w-7xl mx-auto flex justify-between items-center gap-3">
+      <div class="text-xs text-slate-500 flex items-center gap-2">
+        <span><strong id="filledCountText" class="text-blue-600">0</strong> / 20 <span data-i18n="itemsFilled">항목 입력됨</span></span>
+        <span class="hidden sm:inline text-slate-300">|</span>
+        <span class="hidden sm:inline text-emerald-600 font-semibold" data-i18n="autoDraftNote">입력 시 자동 임시저장됨</span>
       </div>
       <button onclick="saveMyData()" id="btnSave" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold rounded-xl text-sm shadow-md transition" data-i18n="btnSave">
         저장하기
@@ -129,6 +168,7 @@
   </div>
 
 <script>
+// 나중에 Apps Script 배포 URL을 아래에 입력하면 중앙 서버 동기화가 활성화됩니다.
 const SCRIPT_URL = "";
 
 const MEMBERS = [
@@ -146,60 +186,42 @@ const ACTIVITY_CODES = [
   { code: "B-2", label: "Market Performance intelligence", ko: "시장조사/테스트", color: "bg-purple-600 text-white border-purple-600", light: "bg-purple-50 text-purple-700 border-purple-200", presets: ["Tire count survey", "Field wear monitoring", "Scrap tire survey", "Competitor survey"] },
   { code: "C", label: "Dealer Visit", ko: "대리점 방문", color: "bg-emerald-600 text-white border-emerald-600", light: "bg-emerald-50 text-emerald-700 border-emerald-200", presets: ["Dealer visit", "Fleet visit", "Sales support", "Dealer seminar"] },
   { code: "D", label: "Training", ko: "교육", color: "bg-cyan-600 text-white border-cyan-600", light: "bg-cyan-50 text-cyan-700 border-cyan-200", presets: ["Product training", "Technical keyman training", "Onboarding training", "Gemba training"] },
-  { code: "E", label: "Business Trip (local, overseas travel)", ko: "출장/이동", color: "bg-amber-500 text-white border-amber-500", light: "bg-amber-50 text-amber-800 border-amber-200", presets: ["Move to Seoul", "Move to Yangyang", "Move to Cheonan", "Move to Gimhae", "Business trip"] },
+  { code: "E", label: "Business Trip (local, overseas travel)", ko: "출장/이동", color: "bg-amber-500 text-white border-amber-500", light: "bg-amber-50 text-amber-800 border-amber-200", presets: ["Move to ", "Business trip", "Overseas business trip", "Return to office"] },
   { code: "F", label: "Off-Work (leave, public/company holiday)", ko: "휴무/연차", color: "bg-pink-500 text-white border-pink-500", light: "bg-pink-50 text-pink-700 border-pink-200", presets: ["Annual leave", "Half-day leave", "Public holiday", "Company holiday"] },
   { code: "G", label: "Others", ko: "기타/S&R", color: "bg-blue-600 text-white border-blue-600", light: "bg-blue-50 text-blue-700 border-blue-200", presets: ["Preparation", "S&R task", "S&R meeting", "KEA meeting", "Writing weekly plan"] }
 ];
 
 const QUICK_CITIES = ["BSTK", "Yangyang", "Seoul", "Cheonan", "Dangjin", "Wonju", "Gimhae", "Busan"];
 
-// 전국 시·도 및 시·군·구 전체 지명 목록 (자동완성용)
 const ALL_KOREA_LOCATIONS = [
   "BSTK", "Overseas",
-  // 서울특별시 (25)
   "Seoul", "Jongno-gu", "Jung-gu", "Yongsan-gu", "Seongdong-gu", "Gwangjin-gu", "Dongdaemun-gu", "Jungnang-gu",
   "Seongbuk-gu", "Gangbuk-gu", "Dobong-gu", "Nowon-gu", "Eunpyeong-gu", "Seodaemun-gu", "Mapo-gu", "Yangcheon-gu",
   "Gangseo-gu", "Guro-gu", "Geumcheon-gu", "Yeongdeungpo-gu", "Dongjak-gu", "Gwanak-gu", "Seocho-gu", "Gangnam-gu", "Songpa-gu", "Gangdong-gu",
-  // 부산광역시 (16)
   "Busan", "Jung-gu (Busan)", "Seo-gu (Busan)", "Dong-gu (Busan)", "Yeongdo-gu", "Busanjin-gu", "Dongnae-gu", "Nam-gu (Busan)",
   "Buk-gu (Busan)", "Haeundae-gu", "Saha-gu", "Geumjeong-gu", "Gangseo-gu (Busan)", "Yeonje-gu", "Suyeong-gu", "Sasang-gu", "Gijang-gun",
-  // 대구광역시 (9)
   "Daegu", "Jung-gu (Daegu)", "Dong-gu (Daegu)", "Seo-gu (Daegu)", "Nam-gu (Daegu)", "Buk-gu (Daegu)", "Suseong-gu", "Dalseo-gu", "Dalseong-gun", "Gunwi-gun",
-  // 인천광역시 (10)
   "Incheon", "Jung-gu (Incheon)", "Dong-gu (Incheon)", "Michuhol-gu", "Yeonsu-gu", "Namdong-gu", "Bupyeong-gu", "Gyeyang-gu", "Seo-gu (Incheon)", "Ganghwa-gun", "Ongjin-gun",
-  // 광주광역시 (5)
   "Gwangju", "Dong-gu (Gwangju)", "Seo-gu (Gwangju)", "Nam-gu (Gwangju)", "Buk-gu (Gwangju)", "Gwangsan-gu",
-  // 대전광역시 (5)
   "Daejeon", "Dong-gu (Daejeon)", "Jung-gu (Daejeon)", "Seo-gu (Daejeon)", "Yuseong-gu", "Daedeok-gu",
-  // 울산광역시 (5)
   "Ulsan", "Jung-gu (Ulsan)", "Nam-gu (Ulsan)", "Dong-gu (Ulsan)", "Buk-gu (Ulsan)", "Ulju-gun",
-  // 세종특별자치시
   "Sejong",
-  // 경기도 (31)
   "Gyeonggi", "Suwon", "Seongnam", "Uijeongbu", "Anyang", "Bucheon", "Gwangmyeong", "Pyeongtaek", "Dongducheon",
   "Ansan", "Goyang", "Gwacheon", "Guri", "Namyangju", "Osan", "Siheung", "Gunpo", "Uiwang", "Hanam", "Yongin",
   "Paju", "Icheon", "Anseong", "Gimpo", "Hwaseong", "Gwangju (Gyeonggi)", "Yangju", "Pocheon", "Yeoju", "Yeoncheon-gun", "Gapyeong-gun", "Yangpyeong-gun",
-  // 강원특별자치도 (18)
   "Gangwon", "Chuncheon", "Wonju", "Gangneung", "Donghae", "Taebaek", "Sokcho", "Samcheok",
   "Hongcheon-gun", "Hoengseong-gun", "Yeongwol-gun", "Pyeongchang-gun", "Jeongseon-gun", "Cheorwon-gun", "Hwacheon-gun", "Yanggu-gun", "Inje-gun", "Goseong-gun", "Yangyang-gun", "Yangyang",
-  // 충청북도 (11)
   "Chungbuk", "Cheongju", "Chungju", "Jecheon", "Boeun-gun", "Okcheon-gun", "Yeongdong-gun", "Jeungpyeong-gun", "Jincheon-gun", "Goesan-gun", "Eumseong-gun", "Danyang-gun",
-  // 충청남도 (15)
   "Chungnam", "Cheonan", "Gongju", "Boryeong", "Asan", "Seosan", "Nonsan", "Gyeryong", "Dangjin",
   "Geumsan-gun", "Buyeo-gun", "Seocheon-gun", "Cheongyang-gun", "Hongseong-gun", "Yesan-gun", "Taean-gun",
-  // 전북특별자치도 (14)
   "Jeonbuk", "Jeonju", "Gunsan", "Iksan", "Jeongeup", "Namwon", "Gimje",
   "Wanju-gun", "Jinan-gun", "Muju-gun", "Jangsu-gun", "Imsil-gun", "Sunchang-gun", "Gochang-gun", "Buan-gun",
-  // 전라남도 (22)
   "Jeonnam", "Mokpo", "Yeosu", "Suncheon", "Naju", "Gwangyang",
   "Damyang-gun", "Gokseong-gun", "Gurye-gun", "Goheung-gun", "Boseong-gun", "Hwasun-gun", "Jangheung-gun", "Gangjin-gun", "Haenam-gun", "Yeongam-gun", "Muan-gun", "Hampyeong-gun", "Yeonggwang-gun", "Jangseong-gun", "Wando-gun", "Jindo-gun", "Sinan-gun",
-  // 경상북도 (22)
   "Gyeongbuk", "Pohang", "Gyeongju", "Gimcheon", "Andong", "Gumi", "Yeongju", "Yeongcheon", "Sangju", "Mungyeong", "Gyeongsan",
   "Uiseong-gun", "Cheongsong-gun", "Yeongyang-gun", "Yeongdeok-gun", "Cheongdo-gun", "Goryeong-gun", "Seongju-gun", "Chilgok-gun", "Yecheon-gun", "Bonghwa-gun", "Uljin-gun", "Ulleung-gun",
-  // 경상남도 (18)
   "Gyeongnam", "Changwon", "Jinju", "Tongyeong", "Sacheon", "Gimhae", "Miryang", "Geoje", "Yangsan",
   "Uiryeong-gun", "Haman-gun", "Changnyeong-gun", "Goseong-gun (Gyeongnam)", "Namhae-gun", "Hadong-gun", "Sancheong-gun", "Hamyang-gun", "Geochang-gun", "Hapcheon-gun",
-  // 제주특별자치도 (2)
   "Jeju", "Jeju-si", "Seogwipo-si"
 ];
 
@@ -209,47 +231,72 @@ const I18N = {
     loginDesc: "본인의 이름을 선택하여 주간 일정을 입력하세요.",
     weekSelect: "대상 주차:",
     logout: "사용자 변경",
-    btnCopyLastWeek: "지난주 일정 가져오기",
-    btnClear: "초기화",
+    btnQuickExcel: "엑셀 다운로드",
+    btnCopyLastWeek: "지난주 불러오기",
+    btnClear: "전체 비우기",
     tabMyInput: "내 일정 입력",
-    tabAllView: "전체 취합 및 엑셀 다운로드",
-    codeGuideTitle: "Activity Code 기준표",
+    tabTeamMatrix: "6명 한눈에 보기",
+    tabAllView: "개별 시트 및 엑셀",
+    matrixTitle: "팀 전체 주간 일정 (6명 통합)",
     btnDownload: "6명 통합 엑셀 다운로드 (.xlsx)",
     btnSave: "저장하기",
     itemsFilled: "항목 입력됨",
-    savedAlert: "저장되었습니다.",
+    autoDraftNote: "입력 시 자동 임시저장됨",
+    savedToast: "저장 완료되었습니다.",
     statusDone: "입력 완료",
     statusEmpty: "미입력",
     copyPrevDay: "전일 복사",
-    addSlot: "+ 일정 추가"
+    addSlot: "+ 일정 추가",
+    filterAll: "전체"
   },
   en: {
     loginTitle: "Select User",
     loginDesc: "Select your name to enter your weekly itinerary.",
     weekSelect: "Target Week:",
     logout: "Switch User",
+    btnQuickExcel: "Download Excel",
     btnCopyLastWeek: "Import Last Week",
-    btnClear: "Clear",
-    tabMyInput: "My Itinerary Input",
-    tabAllView: "All Sheets & Excel Download",
-    codeGuideTitle: "Activity Code Reference",
+    btnClear: "Clear All",
+    tabMyInput: "My Plan",
+    tabTeamMatrix: "Team Matrix (All 6)",
+    tabAllView: "Sheet View & Excel",
+    matrixTitle: "Team Weekly Overview (All 6 Members)",
     btnDownload: "Download Combined Excel (.xlsx)",
     btnSave: "Save Plan",
     itemsFilled: "items filled",
-    savedAlert: "Saved successfully.",
+    autoDraftNote: "Auto-saved locally",
+    savedToast: "Saved successfully.",
     statusDone: "Submitted",
     statusEmpty: "Pending",
     copyPrevDay: "Copy Prev Day",
-    addSlot: "+ Add Row"
+    addSlot: "+ Add Row",
+    filterAll: "All"
   }
 };
 
 let currentLang = "ko";
 let currentUser = null;
 let selectedPreviewCode = "JKH";
+let matrixFilterCode = "ALL";
 let weekOptions = [];
 let allWeekData = {};
 let currentRows = [];
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.innerText = msg;
+  el.classList.remove("opacity-0");
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.add("opacity-0"), 2200);
+}
 
 window.onload = () => {
   initLocationDatalist();
@@ -262,13 +309,13 @@ window.onload = () => {
 function initLocationDatalist() {
   const uniqueLocations = [...new Set(ALL_KOREA_LOCATIONS)];
   document.getElementById("koreaCityList").innerHTML = uniqueLocations
-    .map(loc => `<option value="${loc}"></option>`)
+    .map(loc => `<option value="${escapeHtml(loc)}"></option>`)
     .join("");
 }
 
 function initUserButtons() {
   document.getElementById("userButtons").innerHTML = MEMBERS.map(m => `
-    <button onclick="login('${m.code}')" class="p-3.5 border border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50/70 active:scale-95 text-left transition shadow-xs">
+    <button onclick="login('${m.code}')" class="p-3.5 border border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50/70 active:scale-95 text-left transition">
       <div class="font-extrabold text-base text-slate-900">${m.ko}</div>
       <div class="text-xs text-slate-500 mt-0.5">${m.en} · <span class="font-bold text-blue-600">${m.code}</span></div>
     </button>
@@ -341,27 +388,28 @@ function applyLanguage() {
   });
   if (currentUser) {
     renderDayCards();
+    renderMatrixView();
     renderPreviewTable();
+    renderSubmissionSummary();
   }
 }
 
 function switchTab(tab) {
-  const isInput = tab === "input";
-  document.getElementById("viewInput").classList.toggle("hidden", !isInput);
-  document.getElementById("viewOverview").classList.toggle("hidden", isInput);
-  document.getElementById("floatingSaveBar").classList.toggle("hidden", !isInput);
+  const views = { input: "viewInput", matrix: "viewMatrix", overview: "viewOverview" };
+  const tabs = { input: "tabInput", matrix: "tabMatrix", overview: "tabOverview" };
 
-  document.getElementById("tabInput").className = isInput
-    ? "py-2.5 rounded-lg font-bold text-sm bg-white text-blue-600 shadow-sm transition"
-    : "py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:text-slate-900 transition";
-  document.getElementById("tabOverview").className = !isInput
-    ? "py-2.5 rounded-lg font-bold text-sm bg-white text-blue-600 shadow-sm transition"
-    : "py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:text-slate-900 transition";
+  Object.keys(views).forEach(k => {
+    document.getElementById(views[k]).classList.toggle("hidden", k !== tab);
+    document.getElementById(tabs[k]).className = k === tab
+      ? "py-2.5 px-2 rounded-lg font-bold text-xs sm:text-sm bg-white text-blue-600 shadow-sm transition"
+      : "py-2.5 px-2 rounded-lg font-bold text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition";
+  });
 
-  if (!isInput) {
-    allWeekData[currentUser.code] = currentRows;
-    renderOverviewTabs();
-  }
+  document.getElementById("floatingSaveBar").classList.toggle("hidden", tab !== "input");
+
+  allWeekData[currentUser.code] = currentRows;
+  if (tab === "matrix") renderMatrixView();
+  if (tab === "overview") renderOverviewTabs();
 }
 
 function getSelectedWeekObj() {
@@ -371,11 +419,36 @@ function getSelectedWeekObj() {
 
 function renderTopCodeGuide() {
   document.getElementById("topCodeGuide").innerHTML = ACTIVITY_CODES.map(c => `
-    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-xs ${c.light}">
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] ${c.light}">
       <strong class="font-extrabold">${c.code}</strong>
-      <span>${c.label} (${c.ko})</span>
+      <span>${c.ko}</span>
     </span>
   `).join("");
+}
+
+function renderSubmissionSummary() {
+  const bar = document.getElementById("submissionSummaryBar");
+  let doneCount = 0;
+  const badges = MEMBERS.map(m => {
+    const rows = m.code === currentUser?.code ? currentRows : (allWeekData[m.code] || []);
+    const hasData = rows.some(r => r.city || r.code || r.detail);
+    if (hasData) doneCount++;
+    return `
+      <button onclick="openMemberSheet('${m.code}')" title="${m.ko} (${m.en})"
+        class="px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1
+        ${hasData ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-400 border-slate-200"}">
+        <span class="w-1.5 h-1.5 rounded-full ${hasData ? "bg-emerald-500" : "bg-slate-300"}"></span>
+        ${m.code}
+      </button>
+    `;
+  }).join("");
+
+  bar.innerHTML = `<span class="text-xs font-extrabold text-slate-700 mr-1">${doneCount}/6</span>` + badges;
+}
+
+function openMemberSheet(code) {
+  selectedPreviewCode = code;
+  switchTab("overview");
 }
 
 async function loadWeekData() {
@@ -402,8 +475,17 @@ async function loadWeekData() {
     return saved[i] || { date: weekObj.days[dIdx], no: (i % 4) + 1, city: "", code: "", detail: "" };
   });
 
+  renderSubmissionSummary();
   renderDayCards();
+  renderMatrixView();
   renderOverviewTabs();
+}
+
+function autoSaveLocal() {
+  const weekObj = getSelectedWeekObj();
+  allWeekData[currentUser.code] = currentRows;
+  localStorage.setItem(`weekly_${weekObj.key}`, JSON.stringify(allWeekData));
+  renderSubmissionSummary();
 }
 
 function renderDayCards() {
@@ -424,7 +506,13 @@ function renderDayCards() {
       rowsHtml += `
         <div id="slot_${rowIdx}" class="${isHidden ? "hidden" : ""} p-3 rounded-xl border ${r.code ? "border-blue-200 bg-blue-50/20" : "border-slate-200 bg-slate-50/60"} space-y-2.5">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-extrabold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">#${slot + 1}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-extrabold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">#${slot + 1}</span>
+              ${(r.city || r.code || r.detail) ? `
+                <button type="button" onclick="clearSingleRow(${rowIdx})" title="항목 비우기"
+                  class="text-xs text-slate-400 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-50 font-bold">×</button>
+              ` : ""}
+            </div>
             <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
               ${ACTIVITY_CODES.map(c => {
                 const active = r.code === c.code;
@@ -441,7 +529,8 @@ function renderDayCards() {
 
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
             <div class="sm:col-span-4">
-              <input type="text" list="koreaCityList" value="${r.city}" oninput="updateField(${rowIdx}, 'city', this.value)"
+              <input type="text" id="city_${rowIdx}" list="koreaCityList" value="${escapeHtml(r.city)}"
+                oninput="updateField(${rowIdx}, 'city', this.value)"
                 placeholder="City (전국 지명 검색/선택)"
                 class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium" />
               <div class="flex gap-1 overflow-x-auto no-scrollbar mt-1">
@@ -455,7 +544,8 @@ function renderDayCards() {
             </div>
 
             <div class="sm:col-span-8">
-              <input type="text" value="${r.detail}" oninput="updateField(${rowIdx}, 'detail', this.value)"
+              <input type="text" id="detail_${rowIdx}" value="${escapeHtml(r.detail)}"
+                oninput="updateField(${rowIdx}, 'detail', this.value)"
                 placeholder="Activity / Details"
                 class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none" />
               <div class="flex gap-1 overflow-x-auto no-scrollbar mt-1">
@@ -503,11 +593,20 @@ function renderDayCards() {
 }
 
 function selectCode(rowIdx, code) {
-  currentRows[rowIdx].code = currentRows[rowIdx].code === code ? "" : code;
-  if (currentRows[rowIdx].code === "E" && !currentRows[rowIdx].detail && currentRows[rowIdx].city) {
-    currentRows[rowIdx].detail = `Move to ${currentRows[rowIdx].city}`;
+  const isTurningOn = currentRows[rowIdx].code !== code;
+  currentRows[rowIdx].code = isTurningOn ? code : "";
+
+  // 코드 E 선택 시 특정 지명 없이 "Move to "만 자동 입력 후 커서 포커스
+  if (isTurningOn && code === "E" && !currentRows[rowIdx].detail) {
+    currentRows[rowIdx].detail = "Move to ";
   }
+
+  autoSaveLocal();
   renderDayCards();
+
+  if (isTurningOn && code === "E") {
+    focusInputEnd(`detail_${rowIdx}`);
+  }
 }
 
 function setCity(rowIdx, city) {
@@ -515,17 +614,40 @@ function setCity(rowIdx, city) {
   if (city === "BSTK" && !currentRows[rowIdx].code) {
     currentRows[rowIdx].code = "A";
   }
+  autoSaveLocal();
   renderDayCards();
 }
 
 function setDetail(rowIdx, text) {
   currentRows[rowIdx].detail = text;
+  autoSaveLocal();
   renderDayCards();
+  if (text.endsWith(" ")) {
+    focusInputEnd(`detail_${rowIdx}`);
+  }
+}
+
+function focusInputEnd(elId) {
+  const input = document.getElementById(elId);
+  if (input) {
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
 }
 
 function updateField(rowIdx, field, val) {
   currentRows[rowIdx][field] = val;
   updateFilledCount();
+  autoSaveLocal();
+}
+
+function clearSingleRow(rowIdx) {
+  currentRows[rowIdx].city = "";
+  currentRows[rowIdx].code = "";
+  currentRows[rowIdx].detail = "";
+  autoSaveLocal();
+  renderDayCards();
 }
 
 function expandDaySlots(dIdx) {
@@ -550,7 +672,9 @@ function copyPreviousDay(dIdx) {
       detail: prev.detail
     };
   }
+  autoSaveLocal();
   renderDayCards();
+  showToast(currentLang === "ko" ? "전일 일정을 복사했습니다." : "Copied from previous day.");
 }
 
 function copyFromLastWeek() {
@@ -561,7 +685,7 @@ function copyFromLastWeek() {
   const prevWeekKey = weekOptions[curIdx - 1].key;
   const prevCache = localStorage.getItem(`weekly_${prevWeekKey}`);
   if (!prevCache) {
-    alert(currentLang === "ko" ? "저장된 지난주 데이터가 없습니다." : "No saved data from last week.");
+    showToast(currentLang === "ko" ? "저장된 지난주 데이터가 없습니다." : "No data from last week.");
     return;
   }
 
@@ -574,7 +698,9 @@ function copyFromLastWeek() {
     ...r,
     date: weekObj.days[Math.floor(i / 4)]
   }));
+  autoSaveLocal();
   renderDayCards();
+  showToast(currentLang === "ko" ? "지난주 일정을 불러왔습니다." : "Imported last week's plan.");
 }
 
 function clearMyWeek() {
@@ -586,7 +712,9 @@ function clearMyWeek() {
     code: "",
     detail: ""
   }));
+  autoSaveLocal();
   renderDayCards();
+  showToast(currentLang === "ko" ? "현재 주차 일정을 비웠습니다." : "Cleared current week.");
 }
 
 function updateFilledCount() {
@@ -616,9 +744,96 @@ async function saveMyData() {
 
   btn.disabled = false;
   btn.innerText = I18N[currentLang].btnSave;
-  alert(I18N[currentLang].savedAlert);
+  renderSubmissionSummary();
+  showToast(I18N[currentLang].savedToast);
 }
 
+// [탭 2] 6명 전체 매트릭스 렌더링
+function renderMatrixView() {
+  const weekObj = getSelectedWeekObj();
+  document.getElementById("matrixPeriodSub").innerText = weekObj.periodStr;
+
+  // 코드 필터 버튼
+  const filterBar = document.getElementById("matrixCodeFilter");
+  filterBar.innerHTML = `
+    <button onclick="setMatrixFilter('ALL')"
+      class="px-2.5 py-1 rounded-lg text-xs font-bold border ${matrixFilterCode === "ALL" ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"}">
+      ${I18N[currentLang].filterAll}
+    </button>
+    ${ACTIVITY_CODES.map(c => `
+      <button onclick="setMatrixFilter('${c.code}')"
+        class="px-2 py-1 rounded-lg text-xs font-bold border ${matrixFilterCode === c.code ? c.color : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}">
+        ${c.code}
+      </button>
+    `).join("")}
+  `;
+
+  // 테이블 헤더 (Date + 6명)
+  document.getElementById("matrixTableHead").innerHTML = `
+    <th class="border-b border-r border-slate-200 p-2.5 w-24 text-center bg-slate-100 sticky left-0 z-10">Date</th>
+    ${MEMBERS.map(m => {
+      const rows = allWeekData[m.code] || [];
+      const hasData = rows.some(r => r.city || r.code || r.detail);
+      return `
+        <th class="border-b border-r border-slate-200 p-2.5 text-left min-w-[145px]">
+          <div class="flex items-center justify-between">
+            <span class="font-extrabold text-slate-900">${m.ko}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${hasData ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}">${m.code}</span>
+          </div>
+        </th>
+      `;
+    }).join("")}
+  `;
+
+  // 테이블 본문 (월~금 5행 x 6명 열)
+  document.getElementById("matrixTableBody").innerHTML = weekObj.days.map((dayStr, dIdx) => {
+    const memberCells = MEMBERS.map(m => {
+      const rows = (allWeekData[m.code] || []).slice(dIdx * 4, dIdx * 4 + 4);
+      const validRows = rows.filter(r => {
+        const filled = r.city || r.code || r.detail;
+        if (!filled) return false;
+        if (matrixFilterCode !== "ALL" && r.code !== matrixFilterCode) return false;
+        return true;
+      });
+
+      if (validRows.length === 0) {
+        return `<td class="border-b border-r border-slate-200 p-2 align-top text-slate-300 text-center">-</td>`;
+      }
+
+      const itemsHtml = validRows.map(r => {
+        const codeObj = ACTIVITY_CODES.find(c => c.code === r.code);
+        const badgeClass = codeObj ? codeObj.light : "bg-slate-100 text-slate-600 border-slate-200";
+        return `
+          <div class="p-1.5 rounded-lg border ${badgeClass} mb-1.5 last:mb-0">
+            <div class="flex items-center justify-between gap-1 mb-0.5">
+              <span class="font-extrabold text-[10px]">${escapeHtml(r.code || "-")}</span>
+              <span class="font-bold text-[10px] opacity-80 truncate">${escapeHtml(r.city)}</span>
+            </div>
+            <div class="text-[11px] leading-snug text-slate-800 break-words">${escapeHtml(r.detail)}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `<td class="border-b border-r border-slate-200 p-2 align-top bg-white">${itemsHtml}</td>`;
+    }).join("");
+
+    return `
+      <tr>
+        <td class="border-b border-r border-slate-200 p-2.5 text-center font-extrabold text-slate-700 bg-slate-50 sticky left-0 align-top">
+          ${dayStr}
+        </td>
+        ${memberCells}
+      </tr>
+    `;
+  }).join("");
+}
+
+function setMatrixFilter(code) {
+  matrixFilterCode = code;
+  renderMatrixView();
+}
+
+// [탭 3] 개별 시트 보기
 function renderOverviewTabs() {
   document.getElementById("sheetTabs").innerHTML = MEMBERS.map(m => {
     const hasData = (allWeekData[m.code] || []).some(r => r.city || r.code || r.detail);
@@ -627,7 +842,7 @@ function renderOverviewTabs() {
       <button onclick="selectPreviewSheet('${m.code}')"
         class="px-3 py-1.5 rounded-xl text-xs font-extrabold border transition flex items-center gap-1.5
         ${active ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"}">
-        <span>${m.code}</span>
+        <span>${m.code} (${m.ko})</span>
         <span class="w-2 h-2 rounded-full ${hasData ? "bg-emerald-400" : "bg-slate-300"}"></span>
       </button>
     `;
@@ -664,17 +879,19 @@ function renderPreviewTable() {
       }
       html += `
         <td class="border border-slate-300 p-1.5 text-center">${no}</td>
-        <td class="border border-slate-300 p-1.5 text-center">${r.city}</td>
-        <td class="border border-slate-300 p-1.5 text-center font-bold text-blue-700">${r.code}</td>
-        <td class="border border-slate-300 p-1.5">${r.detail}</td>
+        <td class="border border-slate-300 p-1.5 text-center">${escapeHtml(r.city)}</td>
+        <td class="border border-slate-300 p-1.5 text-center font-bold text-blue-700">${escapeHtml(r.code)}</td>
+        <td class="border border-slate-300 p-1.5">${escapeHtml(r.detail)}</td>
       </tr>`;
     }
   });
   document.getElementById("previewTableBody").innerHTML = html;
 }
 
+// 6명 시트 통합 엑셀 다운로드
 function downloadExcel() {
   const weekObj = getSelectedWeekObj();
+  allWeekData[currentUser.code] = currentRows;
   const wb = XLSX.utils.book_new();
 
   MEMBERS.forEach(member => {
@@ -729,6 +946,7 @@ function downloadExcel() {
   });
 
   XLSX.writeFile(wb, `Weekly_Plan_${weekObj.key}.xlsx`);
+  showToast(currentLang === "ko" ? "엑셀 파일이 다운로드되었습니다." : "Excel file downloaded.");
 }
 </script>
 </body>
