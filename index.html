@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weekly Itinerary Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 서식(테두리·색상·정렬) 지원 엑셀 생성 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <style>
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -30,13 +31,11 @@
       <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1">Weekly Itinerary</h1>
       <p class="text-sm text-slate-500 mb-6" data-i18n="homeDesc">원하는 작업을 선택하세요.</p>
 
-      <!-- 대상 주차 선택 -->
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 mb-6">
         <label class="block text-xs font-bold text-slate-500 mb-1" data-i18n="weekSelect">대상 주차</label>
         <select id="homeWeekSelector" onchange="syncWeekSelection(this.value)" class="w-full bg-transparent text-base font-extrabold text-slate-900 focus:outline-none"></select>
       </div>
 
-      <!-- 메인 진입 버튼 2개 -->
       <div class="grid grid-cols-1 gap-3.5">
         <button onclick="openUserSelectModal()" class="w-full p-5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-left shadow-md transition">
           <div class="text-lg font-extrabold" data-i18n="homeBtnInput">일정 입력하기</div>
@@ -51,7 +50,7 @@
     </div>
   </div>
 
-  <!-- 2. 사용자 선택 모달 (일정 입력하기 클릭 시 표시) -->
+  <!-- 2. 사용자 선택 모달 -->
   <div id="userSelectModal" class="hidden fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-2">
@@ -63,9 +62,8 @@
     </div>
   </div>
 
-  <!-- 3. 메인 앱 컨테이너 (입력 화면 / 스케줄 확인 화면 공용) -->
+  <!-- 3. 메인 앱 컨테이너 -->
   <div id="app" class="hidden max-w-7xl mx-auto p-3 sm:p-5">
-    <!-- 상단 공용 헤더 -->
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 sm:p-4 mb-4">
       <div class="flex flex-wrap justify-between items-center gap-2.5">
         <div class="flex items-center gap-2">
@@ -87,7 +85,6 @@
         </div>
       </div>
 
-      <!-- 주차 선택 + 7명 제출 현황 -->
       <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center gap-2.5">
         <div class="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-xl flex-1 sm:flex-initial">
           <span class="text-xs font-bold text-slate-500 shrink-0" data-i18n="weekSelect">주차:</span>
@@ -98,9 +95,8 @@
       </div>
     </header>
 
-    <!-- [화면 A] 내 일정 입력 (하루 4개 기본 고정) -->
+    <!-- [화면 A] 내 일정 입력 -->
     <div id="inputScreen" class="hidden space-y-4">
-      <!-- 코드 기준표 + 빠른 도구 -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 flex flex-wrap justify-between items-center gap-3">
         <div class="flex flex-wrap gap-1.5" id="topCodeGuide"></div>
         <div class="flex items-center gap-2">
@@ -116,10 +112,8 @@
         </div>
       </div>
 
-      <!-- 월~금 5일 x 4개 슬롯 카드 -->
       <div id="dayCardsContainer" class="space-y-4"></div>
 
-      <!-- 페이지 최하단 대형 저장 버튼 -->
       <div class="pt-2">
         <button onclick="saveMyData()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg transition" data-i18n="btnSaveBig">
           작성한 주간 일정 저장하기
@@ -129,7 +123,6 @@
 
     <!-- [화면 B] 총 스케줄 확인하기 -->
     <div id="scheduleScreen" class="hidden space-y-4">
-      <!-- 보기 모드 선택 + 전체화면 + 엑셀 다운로드 -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 flex flex-wrap justify-between items-center gap-3">
         <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
           <button id="subTabMobile" onclick="switchScheduleMode('mobile')" class="px-3 py-2 rounded-lg text-xs font-extrabold transition" data-i18n="modeMobile">
@@ -153,9 +146,7 @@
         </div>
       </div>
 
-      <!-- 전체화면 확장 가능 컨테이너 -->
       <div id="scheduleFullscreenContainer" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 sm:p-5">
-        <!-- 전체화면일 때만 보이는 상단 닫기 바 -->
         <div id="fullscreenTopBar" class="hidden flex justify-between items-center pb-3 mb-3 border-b border-slate-200">
           <div>
             <h2 class="text-base font-extrabold text-slate-900" id="fullscreenTitle">Weekly Schedule (7 Members)</h2>
@@ -167,19 +158,16 @@
           </div>
         </div>
 
-        <!-- 코드 필터 바 (요일별 카드 / 7명 전체표 공용) -->
         <div id="scheduleFilterBar" class="flex flex-wrap justify-between items-center gap-2 mb-4">
           <div class="text-xs font-bold text-slate-500" id="schedulePeriodLabel"></div>
           <div class="flex items-center gap-1 flex-wrap" id="matrixCodeFilter"></div>
         </div>
 
-        <!-- [보기 1] 모바일 최적화 요일별 카드 보기 (요일 선택 탭 + 7명 세로 카드) -->
         <div id="modeViewMobile" class="hidden space-y-3">
           <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="mobileDayTabs"></div>
           <div id="mobileDayCards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
 
-        <!-- [보기 2] 7명 전체 매트릭스 표 -->
         <div id="modeViewMatrix" class="hidden overflow-x-auto border border-slate-200 rounded-xl">
           <table class="w-full border-collapse text-xs min-w-[1050px]">
             <thead>
@@ -189,7 +177,6 @@
           </table>
         </div>
 
-        <!-- [보기 3] 개별 시트 (원본 엑셀 1번 양식) -->
         <div id="modeViewSheet" class="hidden space-y-3">
           <div class="flex gap-1.5 flex-wrap" id="sheetTabs"></div>
           <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 overflow-x-auto">
@@ -215,7 +202,7 @@
     </div>
   </div>
 
-  <!-- 하단 고정 대형 저장 바 (입력 화면 전용) -->
+  <!-- 하단 고정 대형 저장 바 -->
   <div id="floatingSaveBar" class="hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t-2 border-blue-200 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="text-xs sm:text-sm text-slate-600 shrink-0">
@@ -232,7 +219,6 @@
 // Apps Script 웹 앱 배포 URL 입력 위치
 const SCRIPT_URL = "";
 
-// 팀원 7명 (차상대 CSD 추가)
 const MEMBERS = [
   { ko: "정기현", en: "Ki Hyun JEONG", code: "JKH" },
   { ko: "윤제정", en: "Jea Jung YOUN", code: "YJJ" },
@@ -354,8 +340,8 @@ const I18N = {
 };
 
 let currentLang = "ko";
-let currentMainScreen = "home"; // "home" | "input" | "schedule"
-let currentScheduleMode = window.innerWidth < 768 ? "mobile" : "matrix"; // 모바일은 기본 요일별 카드, PC는 7명 전체표
+let currentMainScreen = "home";
+let currentScheduleMode = window.innerWidth < 768 ? "mobile" : "matrix";
 let isFullscreen = false;
 let currentUser = null;
 let selectedPreviewCode = "JKH";
@@ -372,6 +358,13 @@ function escapeHtml(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function formatLocalDate(d, sep = "-") {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${sep}${m}${sep}${day}`;
 }
 
 function showToast(msg) {
@@ -411,29 +404,27 @@ function initWeekOptions() {
   const today = new Date();
   const day = today.getDay();
   const diffToMon = (day === 0 ? -6 : 1 - day);
-  const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() + diffToMon);
+  const thisMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMon);
 
   const offsets = [-7, 0, 7, 14];
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   weekOptions = offsets.map(offset => {
-    const mon = new Date(thisMonday);
-    mon.setDate(thisMonday.getDate() + offset);
-    const fri = new Date(mon);
-    fri.setDate(mon.getDate() + 4);
+    const mon = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + offset);
+    const fri = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 4);
 
     const periodStr = `${mon.getDate()}${monthNames[mon.getMonth()]}-${fri.getDate()}${monthNames[fri.getMonth()]} ${fri.getFullYear()}`;
-    const key = mon.toISOString().slice(0, 10);
+    const key = formatLocalDate(mon, "-");
+    const endKey = formatLocalDate(fri, "-");
+    const rangeLabel = `${formatLocalDate(mon, ".")} ~ ${formatLocalDate(fri, ".")}`;
 
     const days = [];
     for (let i = 0; i < 5; i++) {
-      const d = new Date(mon);
-      d.setDate(mon.getDate() + i);
+      const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
       days.push(`${d.getMonth() + 1}/${d.getDate()} (${dayNames[d.getDay()]})`);
     }
-    return { key, periodStr, days, isNextWeek: offset === 7 };
+    return { key, endKey, rangeLabel, periodStr, days, isNextWeek: offset === 7 };
   });
 
   const nextWeek = weekOptions.find(w => w.isNextWeek) || weekOptions[0];
@@ -441,7 +432,7 @@ function initWeekOptions() {
 
   const optionsHtml = weekOptions.map(w => `
     <option value="${w.key}" ${w.key === selectedWeekKey ? "selected" : ""}>
-      ${w.periodStr} ${w.isNextWeek ? "(Next Week)" : ""}
+      ${w.rangeLabel} (${w.periodStr}) ${w.isNextWeek ? "- Next Week" : ""}
     </option>
   `).join("");
 
@@ -460,7 +451,6 @@ function getSelectedWeekObj() {
   return weekOptions.find(w => w.key === selectedWeekKey) || weekOptions[0];
 }
 
-// 화면 전환 제어
 function openUserSelectModal() {
   document.getElementById("userSelectModal").classList.remove("hidden");
 }
@@ -525,7 +515,7 @@ function showMainScreen(mode) {
   } else {
     document.getElementById("headerModeTitle").innerText = currentLang === "ko" ? "총 스케줄 확인" : "All Schedules";
     badge.classList.add("hidden");
-    sub.innerText = `${getSelectedWeekObj().periodStr} · 7 Members`;
+    sub.innerText = `${getSelectedWeekObj().rangeLabel} · 7 Members`;
     switchBtn.innerText = I18N[currentLang].goInput;
     switchScheduleMode(currentScheduleMode);
   }
@@ -622,7 +612,6 @@ function autoSaveLocal() {
   renderSubmissionSummary();
 }
 
-// 하루 4개 슬롯 기본 고정 렌더링
 function renderDayCards() {
   if (!currentUser) return;
   const weekObj = getSelectedWeekObj();
@@ -863,7 +852,6 @@ async function saveMyData() {
   showToast(I18N[currentLang].savedToast);
 }
 
-// 총 스케줄 확인하기 보기 전환
 function switchScheduleMode(mode) {
   currentScheduleMode = mode;
   const map = { mobile: "modeViewMobile", matrix: "modeViewMatrix", sheet: "modeViewSheet" };
@@ -888,7 +876,7 @@ function toggleFullscreenSchedule() {
   if (isFullscreen) {
     container.className = "fixed inset-0 z-[60] bg-white p-3 sm:p-5 overflow-auto";
     topBar.classList.remove("hidden");
-    document.getElementById("fullscreenPeriod").innerText = getSelectedWeekObj().periodStr;
+    document.getElementById("fullscreenPeriod").innerText = `${getSelectedWeekObj().rangeLabel} (${getSelectedWeekObj().periodStr})`;
     document.body.classList.add("overflow-hidden");
   } else {
     container.className = "bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 sm:p-5";
@@ -899,7 +887,7 @@ function toggleFullscreenSchedule() {
 
 function renderScheduleViews() {
   const weekObj = getSelectedWeekObj();
-  document.getElementById("schedulePeriodLabel").innerText = weekObj.periodStr;
+  document.getElementById("schedulePeriodLabel").innerText = `${weekObj.rangeLabel} (${weekObj.periodStr})`;
   renderCodeFilterBar();
   renderMobileDayView();
   renderMatrixView();
@@ -926,7 +914,6 @@ function setMatrixFilter(code) {
   renderScheduleViews();
 }
 
-// [보기 1] 모바일 최적화 요일별 카드 (선택한 요일의 7명 일정 1~4번 표시)
 function renderMobileDayView() {
   const weekObj = getSelectedWeekObj();
   document.getElementById("mobileDayTabs").innerHTML = weekObj.days.map((d, idx) => `
@@ -980,7 +967,6 @@ function selectMobileDay(idx) {
   renderMobileDayView();
 }
 
-// [보기 2] 7명 전체 매트릭스 표
 function renderMatrixView() {
   const weekObj = getSelectedWeekObj();
   document.getElementById("matrixTableHead").innerHTML = `
@@ -1041,7 +1027,6 @@ function renderMatrixView() {
   }).join("");
 }
 
-// [보기 3] 개별 시트 보기
 function renderOverviewTabs() {
   document.getElementById("sheetTabs").innerHTML = MEMBERS.map(m => {
     const hasData = (allWeekData[m.code] || []).some(r => r.city || r.code || r.detail);
@@ -1096,66 +1081,174 @@ function renderPreviewTable() {
   document.getElementById("previewTableBody").innerHTML = html;
 }
 
-// 7명 시트 통합 엑셀 다운로드 (빈칸 포함 1~4번 구조 유지)
-function downloadExcel() {
+// 7명 시트 통합 엑셀 다운로드 (원본 양식 스타일·테두리·배경색·기간 제목 완벽 반영)
+async function downloadExcel() {
   const weekObj = getSelectedWeekObj();
   if (currentUser) {
     allWeekData[currentUser.code] = currentRows;
   }
-  const wb = XLSX.utils.book_new();
+
+  const workbook = new ExcelJS.Workbook();
+  const thinBorder = {
+    top: { style: "thin", color: { argb: "FF1E293B" } },
+    left: { style: "thin", color: { argb: "FF1E293B" } },
+    bottom: { style: "thin", color: { argb: "FF1E293B" } },
+    right: { style: "thin", color: { argb: "FF1E293B" } }
+  };
+  const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+  const periodFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF9C4" } };
+  const baseFont = { name: "Calibri", size: 11, color: { argb: "FF0F172A" } };
 
   MEMBERS.forEach(member => {
     const userRows = allWeekData[member.code] || [];
-    const sheetData = [];
+    const ws = workbook.addWorksheet(member.code, {
+      pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 1 }
+    });
 
-    sheetData.push(["Weekly Itinerary", "", "", "", "", ""]);
-    sheetData.push(["Period", "", weekObj.periodStr, "", "Team", "Product Solution"]);
-    sheetData.push([]);
-    sheetData.push(["Date", "No.", "City", "Activity Code", "Activity / Details"]);
+    // 열 너비 설정
+    ws.columns = [
+      { width: 16 }, // A: Date
+      { width: 7 },  // B: No.
+      { width: 20 }, // C: City
+      { width: 15 }, // D: Activity Code
+      { width: 48 }  // E: Activity / Details
+    ];
 
+    // 1행: 시트 제목 (기간 포함)
+    ws.mergeCells("A1:E1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = `Weekly Itinerary (${weekObj.rangeLabel})`;
+    titleCell.font = { name: "Calibri", size: 18, bold: true, color: { argb: "FF0F172A" } };
+    titleCell.alignment = { vertical: "middle", horizontal: "left" };
+    ws.getRow(1).height = 34;
+
+    // 2행: Period / 기간(노란색) / Team / Product Solution
+    ws.mergeCells("B2:C2");
+    ws.getCell("A2").value = "Period";
+    ws.getCell("B2").value = weekObj.periodStr;
+    ws.getCell("D2").value = "Team";
+    ws.getCell("E2").value = "Product Solution";
+    ws.getRow(2).height = 26;
+
+    ["A2", "B2", "C2", "D2", "E2"].forEach(addr => {
+      const cell = ws.getCell(addr);
+      cell.border = thinBorder;
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.font = { ...baseFont, bold: true };
+    });
+    ws.getCell("A2").fill = headerFill;
+    ws.getCell("B2").fill = periodFill;
+    ws.getCell("C2").fill = periodFill;
+    ws.getCell("D2").fill = headerFill;
+
+    // 3행: 여백
+    ws.getRow(3).height = 10;
+
+    // 4행: 메인 테이블 헤더
+    const headers = ["Date", "No.", "City", "Activity Code", "Activity / Details"];
+    const headerRow = ws.getRow(4);
+    headerRow.height = 26;
+    headers.forEach((text, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = text;
+      cell.font = { ...baseFont, bold: true };
+      cell.fill = headerFill;
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = {
+        ...thinBorder,
+        bottom: { style: "medium", color: { argb: "FF1E293B" } }
+      };
+    });
+
+    // 5~24행: 월~금 (각 4행, 총 20행)
     weekObj.days.forEach((dayStr, dIdx) => {
-      for (let no = 1; no <= 4; no++) {
-        const idx = dIdx * 4 + (no - 1);
-        const r = userRows[idx] || { city: "", code: "", detail: "" };
-        sheetData.push([
-          no === 1 ? dayStr : "",
-          no,
-          r.city || "",
-          r.code || "",
-          r.detail || ""
-        ]);
+      const startRow = 5 + dIdx * 4;
+      const endRow = startRow + 3;
+
+      for (let slot = 0; slot < 4; slot++) {
+        const rNum = startRow + slot;
+        const r = userRows[dIdx * 4 + slot] || { city: "", code: "", detail: "" };
+        const row = ws.getRow(rNum);
+        row.height = 22;
+
+        const vals = [slot === 0 ? dayStr : "", slot + 1, r.city || "", r.code || "", r.detail || ""];
+        vals.forEach((v, cIdx) => {
+          const cell = row.getCell(cIdx + 1);
+          cell.value = v;
+          cell.font = (cIdx === 0 || cIdx === 3) ? { ...baseFont, bold: true } : { ...baseFont };
+          cell.alignment = cIdx === 4
+            ? { vertical: "middle", horizontal: "left", wrapText: true }
+            : { vertical: "middle", horizontal: "center" };
+          cell.border = {
+            ...thinBorder,
+            bottom: slot === 3
+              ? { style: "medium", color: { argb: "FF334155" } }
+              : thinBorder.bottom
+          };
+        });
+      }
+
+      // 날짜 셀 4행 세로 병합
+      ws.mergeCells(startRow, 1, endRow, 1);
+    });
+
+    // 25행: 여백
+    ws.getRow(25).height = 14;
+
+    // 26행: Activity Code 섹션 제목
+    const legendTitle = ws.getCell("A26");
+    legendTitle.value = "Activity Code";
+    legendTitle.font = { ...baseFont, bold: true, size: 12 };
+    legendTitle.alignment = { vertical: "middle", horizontal: "left" };
+    ws.getRow(26).height = 22;
+
+    // 27행: 기준표 헤더
+    ws.mergeCells("A27:C27");
+    ws.getCell("A27").value = "Activity";
+    ws.getCell("D27").value = "Code";
+    ws.getRow(27).height = 22;
+    ["A27", "B27", "C27", "D27"].forEach(addr => {
+      const cell = ws.getCell(addr);
+      cell.font = { ...baseFont, bold: true };
+      cell.fill = headerFill;
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = thinBorder;
+    });
+
+    // 28~35행: Activity Code 8개 항목
+    ACTIVITY_CODES.forEach((c, idx) => {
+      const rNum = 28 + idx;
+      ws.mergeCells(rNum, 1, rNum, 3);
+      const row = ws.getRow(rNum);
+      row.height = 20;
+
+      row.getCell(1).value = c.label;
+      row.getCell(4).value = c.code;
+
+      for (let col = 1; col <= 4; col++) {
+        const cell = row.getCell(col);
+        cell.border = thinBorder;
+        cell.font = col === 4 ? { ...baseFont, bold: true } : { ...baseFont };
+        cell.alignment = col === 4
+          ? { vertical: "middle", horizontal: "center" }
+          : { vertical: "middle", horizontal: "left", indent: 1 };
       }
     });
-
-    sheetData.push([]);
-    sheetData.push(["Activity Code", "", "", "", ""]);
-    sheetData.push(["Activity", "", "", "Code", ""]);
-    ACTIVITY_CODES.forEach(c => {
-      sheetData.push([c.label, "", "", c.code, ""]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
-      { s: { r: 4, c: 0 }, e: { r: 7, c: 0 } },
-      { s: { r: 8, c: 0 }, e: { r: 11, c: 0 } },
-      { s: { r: 12, c: 0 }, e: { r: 15, c: 0 } },
-      { s: { r: 16, c: 0 }, e: { r: 19, c: 0 } },
-      { s: { r: 20, c: 0 }, e: { r: 23, c: 0 } }
-    ];
-    ws["!cols"] = [
-      { wch: 15 },
-      { wch: 6 },
-      { wch: 18 },
-      { wch: 15 },
-      { wch: 42 }
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, member.code);
   });
 
-  XLSX.writeFile(wb, `Weekly_Plan_${weekObj.key}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Weekly_Plan_${weekObj.key}_to_${weekObj.endKey}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
   showToast(currentLang === "ko" ? "7명 통합 엑셀 파일이 다운로드되었습니다." : "Excel file downloaded.");
 }
 </script>
